@@ -14,10 +14,24 @@ import java.nio.charset.StandardCharsets;
 
 public class QrCodeGenerator {
 
-    private static final String OVERLAY_IMAGE = "switzerland_normal.png";
+    private static final String OVERLAY_IMAGE = "CH-Kreuz_7mm.png";
 
     private static final String TARGET_FINAL_NAME = "target/combined.png";
 
+    private static final int SWISS_CROSS_EDGE_SIDE_PX = 166;
+
+    private static final int SWISS_CROSS_EDGE_SIDE_MM = 7;
+
+    /**
+     * The edge length of the qrcode inclusive its white border.
+     */
+    private static final int QR_CODE_EDGE_SIDE_MM = 42 + 13;
+
+    private static final int QR_CODE_EDGE_SIDE_PX = SWISS_CROSS_EDGE_SIDE_PX / SWISS_CROSS_EDGE_SIDE_MM * QR_CODE_EDGE_SIDE_MM;
+
+    /**
+     * The payload to encode as qrcode.
+     */
     private static final String PAYLOAD_1 = "SPC\r\n" +
             "0001\r\n" +
             "1\r\n" +
@@ -49,41 +63,46 @@ public class QrCodeGenerator {
             "1;1.1;1278564;1A-2F-43-AC-9B-33-21-B0-CC-D4-28-56;TCXVMKC22;2017-02-10T15:12:39;2017-02-10T15:18:16\r\n" +
             "2;2a-2.2r;_R1-CH2_ConradCH-2074-1_3350_2017-03-13T10:23:47_16,99_0,00_0,00_0,00_0,00_+8FADt/DQ=_1==";
 
+    public static void main(String[] args) {
+        new QrCodeGenerator().generateQrCode(PAYLOAD_1);
+    }
+
     private void generateQrCode(String payload) {
+
+        // generate the qr code from the payload.
         File qrCodeFile = QRCode.from(payload)
                 .to(ImageType.PNG)
                 .withCharset(StandardCharsets.ISO_8859_1.name())
                 .withErrorCorrection(ErrorCorrectionLevel.M)
-                .withSize(500, 500)
+                .withSize(QR_CODE_EDGE_SIDE_PX, QR_CODE_EDGE_SIDE_PX)
                 .file();
 
         try {
-            BufferedImage combinedQrCode = overlayQrCode(qrCodeFile);
-            ImageIO.write(combinedQrCode, "PNG", new File(TARGET_FINAL_NAME));
+            // overlay the qr code with a Swiss Cross
+            BufferedImage combinedQrCodeImage = overlayWithSwissCross(qrCodeFile);
+
+            // Save as new file to the target location
+            ImageIO.write(combinedQrCodeImage, "PNG", new File(TARGET_FINAL_NAME));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private BufferedImage overlayQrCode(File qrCodeFile) throws IOException {
+    private BufferedImage overlayWithSwissCross(File qrCodeFile) throws IOException {
 
         ClassPathResource classPathResource = new ClassPathResource(OVERLAY_IMAGE);
 
         BufferedImage qrCodeImage = ImageIO.read(qrCodeFile);
-        BufferedImage overlay = ImageIO.read(classPathResource.getFile());
-        BufferedImage combindedQrCode = new BufferedImage(qrCodeImage.getWidth(), qrCodeImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        BufferedImage swissCrossImage = ImageIO.read(classPathResource.getFile());
+        BufferedImage combindedQrCodeImage = new BufferedImage(qrCodeImage.getWidth(), qrCodeImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
         // paint both images, preserving the alpha channels
-        Graphics g = combindedQrCode.getGraphics();
+        Graphics g = combindedQrCodeImage.getGraphics();
         g.drawImage(qrCodeImage, 0, 0, null);
-        g.drawImage(overlay, 224, 224, null);
+        int swissCrossPosition = (QR_CODE_EDGE_SIDE_PX / 2) - (SWISS_CROSS_EDGE_SIDE_PX / 2);
+        g.drawImage(swissCrossImage, swissCrossPosition, swissCrossPosition, null);
 
-        // Save as new qrCodeImage
-        return combindedQrCode;
-    }
-
-    public static void main(String[] args) {
-        new QrCodeGenerator().generateQrCode(PAYLOAD_1);
+        return combindedQrCodeImage;
     }
 
 }
