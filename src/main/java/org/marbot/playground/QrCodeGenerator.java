@@ -1,8 +1,12 @@
 package org.marbot.playground;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
-import net.glxn.qrgen.core.image.ImageType;
-import net.glxn.qrgen.javase.QRCode;
 import org.springframework.core.io.ClassPathResource;
 
 import javax.imageio.ImageIO;
@@ -11,6 +15,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class QrCodeGenerator {
 
@@ -64,22 +70,17 @@ public class QrCodeGenerator {
             "2;2a-2.2r;_R1-CH2_ConradCH-2074-1_3350_2017-03-13T10:23:47_16,99_0,00_0,00_0,00_0,00_+8FADt/DQ=_1==";
 
     public static void main(String[] args) {
-        new QrCodeGenerator().generateQrCode(PAYLOAD_1);
+        new QrCodeGenerator().generateSwissQrCode(PAYLOAD_1);
     }
 
-    private void generateQrCode(String payload) {
+    private void generateSwissQrCode(String payload) {
 
         // generate the qr code from the payload.
-        File qrCodeFile = QRCode.from(payload)
-                .to(ImageType.PNG)
-                .withCharset(StandardCharsets.ISO_8859_1.name())
-                .withErrorCorrection(ErrorCorrectionLevel.M)
-                .withSize(QR_CODE_EDGE_SIDE_PX, QR_CODE_EDGE_SIDE_PX)
-                .file();
+        BufferedImage qrCodeImage = generateQrCodeImage(payload);
 
         try {
             // overlay the qr code with a Swiss Cross
-            BufferedImage combinedQrCodeImage = overlayWithSwissCross(qrCodeFile);
+            BufferedImage combinedQrCodeImage = overlayWithSwissCross(qrCodeImage);
 
             // Save as new file to the target location
             ImageIO.write(combinedQrCodeImage, "PNG", new File(TARGET_FINAL_NAME));
@@ -88,11 +89,25 @@ public class QrCodeGenerator {
         }
     }
 
-    private BufferedImage overlayWithSwissCross(File qrCodeFile) throws IOException {
+    private BufferedImage generateQrCodeImage(String payload) {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        Map<EncodeHintType, Object> hints = new HashMap<>();
+        hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+        hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.ISO_8859_1.name());
+
+        BitMatrix bitMatrix;
+        try {
+            bitMatrix = qrCodeWriter.encode(payload, BarcodeFormat.QR_CODE, QR_CODE_EDGE_SIDE_PX, QR_CODE_EDGE_SIDE_PX, hints);
+        } catch (WriterException e) {
+            throw new RuntimeException(e);
+        }
+        return MatrixToImageWriter.toBufferedImage(bitMatrix);
+    }
+
+    private BufferedImage overlayWithSwissCross(BufferedImage qrCodeImage) throws IOException {
 
         ClassPathResource classPathResource = new ClassPathResource(OVERLAY_IMAGE);
 
-        BufferedImage qrCodeImage = ImageIO.read(qrCodeFile);
         BufferedImage swissCrossImage = ImageIO.read(classPathResource.getFile());
         BufferedImage combindedQrCodeImage = new BufferedImage(qrCodeImage.getWidth(), qrCodeImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
