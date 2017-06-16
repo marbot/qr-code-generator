@@ -7,14 +7,16 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
-import org.springframework.core.io.ClassPathResource;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -106,9 +108,15 @@ public class QrCodeGenerator {
 
     private BufferedImage overlayWithSwissCross(BufferedImage qrCodeImage) throws IOException {
 
-        ClassPathResource classPathResource = new ClassPathResource(OVERLAY_IMAGE);
+        Path swissCrossPath;
+        try {
+            swissCrossPath = Paths.get(getClass().getClassLoader().getResource(OVERLAY_IMAGE).toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
 
-        BufferedImage swissCrossImage = ImageIO.read(classPathResource.getFile());
+        BufferedImage swissCrossImage = ImageIO.read(swissCrossPath.toFile());
+
         BufferedImage combindedQrCodeImage = new BufferedImage(qrCodeImage.getWidth(), qrCodeImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
         // paint both images, preserving the alpha channels
