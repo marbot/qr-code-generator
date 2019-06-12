@@ -11,7 +11,7 @@
     <name>qr-code-generator playground</name>
 
     <properties>
-        <zxing.version>3.3.0</zxing.version>
+        <zxing.version>3.4.0</zxing.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.7</maven.compiler.source>
